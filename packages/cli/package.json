@@ -1,0 +1,16 @@
+{
+  "name": "@archguard/cli",
+  "version": "0.1.0",
+  "description": "ArchGuard command-line interface",
+  "type": "module",
+  "bin": {
+    "archguard": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p ."
+  },
+  "dependencies": {
+    "@archguard/core": "0.1.0"
+  },
+  "license": "MIT"
+}
