@@ -1,0 +1,26 @@
+# Copy to .github/workflows/archguard.yml in your Next.js project.
+name: Architecture
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write   # lets ArchGuard comment on the PR
+
+jobs:
+  archguard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bytebyjay/archguard/action@main
+        with:
+          path: .                     # folder to analyse
+          fail-on: error              # block PRs that ADD circular deps / layer violations
+          # Optional AI explanations for new issues:
+          # openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: archguard-report
+          path: ${{ runner.temp }}/archguard-report.json

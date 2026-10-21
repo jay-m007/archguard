@@ -1,0 +1,57 @@
+name: "ArchGuard architecture check"
+description: "Detects circular dependencies, layer violations and god files, and comments on PRs with only the issues they introduce."
+author: "bytebyjay"
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  path:
+    description: "Folder to analyse, relative to the repository root."
+    default: "."
+  config:
+    description: "Path to archguard.config.json (default: <path>/archguard.config.json, else the Next.js preset)."
+    default: ""
+  github-token:
+    description: "Token used to post the PR comment. Needs `pull-requests: write`."
+    default: ${{ github.token }}
+  fail-on:
+    description: "Fail the check if the PR INTRODUCES issues at this level: error | warning | none."
+    default: "error"
+  comment:
+    description: "Post (or update) a comment on the pull request."
+    default: "true"
+  annotations:
+    description: "Add inline annotations on the changed lines for new issues."
+    default: "true"
+  openai-api-key:
+    description: "Optional. Enables AI explanations and fix suggestions for new issues. Pass a secret."
+    default: ""
+  openai-model:
+    description: "Model for explanations."
+    default: "gpt-4o-mini"
+  openai-base-url:
+    description: "Any OpenAI-compatible API (OpenRouter, Groq, a local Ollama...)."
+    default: "https://api.openai.com/v1"
+  max-explanations:
+    description: "Explain at most this many new issues per run (bounds cost)."
+    default: "10"
+  report-path:
+    description: "Where to write the JSON report (upload it with actions/upload-artifact, or open it in the dashboard)."
+    default: ""
+
+outputs:
+  health:
+    description: "Health score (0-100) of the PR head."
+  grade:
+    description: "Letter grade of the PR head."
+  health-delta:
+    description: "Change in health compared with the base branch (PRs only)."
+  introduced:
+    description: "Number of issues the PR introduces (PRs only)."
+  report-path:
+    description: "Path of the JSON report."
+
+runs:
+  using: "node20"
+  main: "dist/index.cjs"

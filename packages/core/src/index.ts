@@ -10,4 +10,10 @@ export { computeNodes, findGodFiles, findOrphans } from "./analyzers/metrics.js"
 export { computeScore, WEIGHTS } from "./score.js";
 export { diffReports } from "./diff.js";
 export type { ReportDiff } from "./diff.js";
+export { analyzeHistory, selectCommits, computeTrend, exportCommit } from "./history.js";
+export { renderPrComment, COMMENT_MARKER } from "./markdown.js";
+export type { CommentContext } from "./markdown.js";
+export { createExplainer, buildViolationContext, buildPrompt, parseExplanations } from "./llm.js";
+export type { Explainer, Explanation, ExplainerConfig } from "./llm.js";
+export type { History, HistoryPoint, HistoryOptions, Regression } from "./history.js";
 export type * from "./types.js";

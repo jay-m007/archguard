@@ -1,0 +1,14 @@
+{
+  "name": "@archguard/action",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ArchGuard GitHub Action: comments on pull requests with newly introduced architecture violations",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p . --noEmit && esbuild src/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/index.cjs --minify --keep-names --legal-comments=none --log-level=warning"
+  },
+  "dependencies": {
+    "@archguard/core": "0.1.0"
+  },
+  "license": "MIT"
+}
