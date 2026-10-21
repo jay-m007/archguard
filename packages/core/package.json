@@ -1,0 +1,26 @@
+{
+  "name": "@archguard/core",
+  "version": "0.1.0",
+  "description": "ArchGuard core: dependency graph builder and architecture analyzers",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p ."
+  },
+  "dependencies": {
+    "fast-glob": "^3.3.2",
+    "picomatch": "^4.0.2",
+    "typescript": "^5.6.3"
+  },
+  "devDependencies": {
+    "@types/picomatch": "^3.0.1"
+  },
+  "license": "MIT"
+}

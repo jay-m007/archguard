@@ -1,0 +1,13 @@
+export { analyze, VERSION } from "./analyze.js";
+export type { AnalyzeOptions } from "./analyze.js";
+export { loadConfig, mergeConfig, validateConfig, DEFAULT_CONFIG, CONFIG_FILENAME } from "./config.js";
+export { extractImports } from "./extract.js";
+export { createResolver } from "./resolve.js";
+export { DependencyGraph } from "./graph.js";
+export { stronglyConnectedComponents, findCycles } from "./analyzers/cycles.js";
+export { createLayerMatcher, findLayerViolations } from "./analyzers/layers.js";
+export { computeNodes, findGodFiles, findOrphans } from "./analyzers/metrics.js";
+export { computeScore, WEIGHTS } from "./score.js";
+export { diffReports } from "./diff.js";
+export type { ReportDiff } from "./diff.js";
+export type * from "./types.js";

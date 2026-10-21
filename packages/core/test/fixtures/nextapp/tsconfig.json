@@ -1,0 +1,8 @@
+{
+  // comments are allowed in tsconfig
+  "compilerOptions": {
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] }
+  }
+}
