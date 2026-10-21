@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import { analyze } from "../src/analyze.js";
 import { diffReports } from "../src/diff.js";
-import { COMMENT_MARKER, renderPrComment } from "../src/markdown.js";
+import { COMMENT_MARKER, code, plain, renderPrComment } from "../src/markdown.js";
 import { buildViolationContext, createExplainer, parseExplanations } from "../src/llm.js";
 
 const fixture = (name: string) => path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures", name);
@@ -96,5 +96,22 @@ describe("LLM explainer", () => {
     expect(ctx).toContain("// src/a.ts");
     expect(ctx).toContain('import { b } from "./b"');
     expect(ctx).toContain("// src/c.ts");
+  });
+});
+
+describe("markdown safety", () => {
+  it("keeps file names with backticks inside one code span", () => {
+    expect(code("a`b.ts")).toBe("``a`b.ts``");
+    expect(code("`x`")).toBe("`` `x` ``");
+    expect(code("plain.ts")).toBe("`plain.ts`");
+  });
+
+  it("defuses links, images, html and mentions in model output", () => {
+    const out = plain("![x](https://evil.test/?t) <img src=x> ping @org/security\nand [click](http://a.b)");
+    expect(out).not.toMatch(/(?<!\\)</);
+    expect(out).not.toMatch(/(?<!\\)\]\(/);
+    expect(out).not.toMatch(/@org/);
+    expect(out).not.toMatch(/https?:\/\//);
+    expect(out).not.toContain("\n");
   });
 });

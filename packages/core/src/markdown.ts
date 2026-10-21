@@ -94,12 +94,30 @@ export function renderPrComment(base: Report, head: Report, diff: ReportDiff, ct
   return lines.join("\n");
 }
 
+/** Inline code that can't be broken out of: the fence is longer than any backtick run inside. */
+export function code(text: string): string {
+  const t = text.replace(/\s+/g, " ").trim();
+  const longest = Math.max(0, ...(t.match(/`+/g) ?? []).map((m) => m.length));
+  const fence = "`".repeat(longest + 1);
+  return `${fence}${t.startsWith("`") || t.endsWith("`") ? ` ${t} ` : t}${fence}`;
+}
+
+/** Turns untrusted text into inert plain text: no links, images, HTML, mentions or markdown structure. */
+export function plain(text: string): string {
+  return text
+    .replace(/\s+/g, " ")
+    .replace(/[<>\[\]`*_~|\\]/g, (c) => `\\${c}`)
+    .replace(/@/g, "@\u200b")
+    .replace(/https?:\/\//gi, (m) => m.replace("://", "\u200b://"))
+    .trim();
+}
+
 function renderViolation(v: Violation, link: Linker, explanation?: Explanation): string[] {
   const out = [`- ${ICON[v.severity]} **${LABEL[v.type]}**: ${describe(v, link)}`];
   if (explanation) {
     out.push("  <details><summary>💡 Why it matters and how to fix it</summary>", "");
-    out.push(`  ${explanation.explanation.replace(/\n+/g, " ")}`, "");
-    if (explanation.suggestion) out.push(`  **Suggested fix:** ${explanation.suggestion.replace(/\n+/g, " ")}`, "");
+    out.push(`  ${plain(explanation.explanation)}`, "");
+    if (explanation.suggestion) out.push(`  **Suggested fix:** ${plain(explanation.suggestion)}`, "");
     out.push("  </details>");
   }
   return out;
@@ -109,12 +127,12 @@ function describe(v: Violation, link: Linker): string {
   switch (v.type) {
     case "circular-dependency": {
       const loop = v.message.split(": ").slice(1).join(": ");
-      return loop.split(" -> ").map((f, i, all) => (i === all.length - 1 ? `\`${f}\`` : link(f))).join(" → ");
+      return loop.split(" -> ").map((f, i, all) => (i === all.length - 1 ? code(f) : link(f))).join(" → ");
     }
     case "layer-violation":
-      return `\`${v.rule}\`: ${link(v.file, v.line)} imports ${link(v.target!)}`;
+      return `${code(v.rule ?? "")}: ${link(v.file, v.line)} imports ${link(v.target!)}`;
     default:
-      return `${link(v.file)} ${v.message.replace(v.file, "").replace(/^\s*/, "")}`;
+      return `${link(v.file)} ${plain(v.message.replace(v.file, ""))}`;
   }
 }
 
@@ -123,7 +141,7 @@ type Linker = (file: string, line?: number) => string;
 function linker(ctx: CommentContext): Linker {
   const prefix = ctx.pathPrefix && ctx.pathPrefix !== "." ? `${ctx.pathPrefix.replace(/\/$/, "")}/` : "";
   return (file, line) => {
-    const label = `\`${file}${line ? `:${line}` : ""}\``;
+    const label = code(`${file}${line ? `:${line}` : ""}`);
     if (!ctx.repoUrl || !ctx.headSha) return label;
     const encoded = `${prefix}${file}`.split("/").map(encodeURIComponent).join("/");
     return `[${label}](${ctx.repoUrl}/blob/${ctx.headSha}/${encoded}${line ? `#L${line}` : ""})`;

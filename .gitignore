@@ -8,3 +8,7 @@ archguard-report.json
 
 # The GitHub Action runs from its committed bundle
 !action/dist/
+
+# Dashboard build output
+.next/
+out/

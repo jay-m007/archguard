@@ -11,7 +11,7 @@ export { computeScore, WEIGHTS } from "./score.js";
 export { diffReports } from "./diff.js";
 export type { ReportDiff } from "./diff.js";
 export { analyzeHistory, selectCommits, computeTrend, exportCommit } from "./history.js";
-export { renderPrComment, COMMENT_MARKER } from "./markdown.js";
+export { renderPrComment, COMMENT_MARKER, code, plain } from "./markdown.js";
 export type { CommentContext } from "./markdown.js";
 export { createExplainer, buildViolationContext, buildPrompt, parseExplanations } from "./llm.js";
 export type { Explainer, Explanation, ExplainerConfig } from "./llm.js";

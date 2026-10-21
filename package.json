@@ -12,8 +12,9 @@
     "build": "npm run build -w @archguard/core && npm run build -w @archguard/cli && npm run build -w @archguard/action",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -p packages/core --noEmit && tsc -p packages/cli --noEmit",
-    "analyze": "node packages/cli/dist/index.js analyze"
+    "typecheck": "tsc -p packages/core --noEmit && tsc -p packages/cli --noEmit && tsc -p apps/dashboard --noEmit",
+    "analyze": "node packages/cli/dist/index.js analyze",
+    "build:dashboard": "npm run build -w @archguard/dashboard"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

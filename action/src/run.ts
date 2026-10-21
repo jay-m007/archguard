@@ -93,6 +93,18 @@ export async function run(ctx: RunContext): Promise<RunResult> {
   try {
     const exported = exportCommit(repoRoot, pr.base.sha, subpath, baseDir);
     const baseRoot = path.join(baseDir, subpath);
+    if (exported && fs.existsSync(baseRoot) && !configPath) {
+      // The PR's own config decides what counts as a violation, so a PR could loosen the rules to pass.
+      // Compare with the base branch's config and say so loudly if they differ.
+      try {
+        const baseConfig = loadConfig(baseRoot, undefined).config;
+        if (JSON.stringify(baseConfig) !== JSON.stringify(config)) {
+          log("::warning::This PR changes the ArchGuard configuration (layers, rules, thresholds or excludes). Review that change; it affects what is reported.");
+        }
+      } catch {
+        /* an unreadable base config is not worth failing the run */
+      }
+    }
     base = exported && fs.existsSync(baseRoot)
       ? await analyze(baseRoot, { config })
       : emptyReport(head); // the analysed folder is new in this PR
@@ -126,7 +138,7 @@ export async function run(ctx: RunContext): Promise<RunResult> {
 
   // --- Report back ------------------------------------------------------------
   const body = renderPrComment(base, head, diff, {
-    repoUrl: `${env.GITHUB_SERVER_URL ?? "https://github.com"}/${env.GITHUB_REPOSITORY}`,
+    repoUrl: env.GITHUB_REPOSITORY ? `${env.GITHUB_SERVER_URL ?? "https://github.com"}/${env.GITHUB_REPOSITORY}` : undefined,
     headSha: pr.head.sha,
     pathPrefix: subpath,
     explanations,
