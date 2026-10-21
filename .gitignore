@@ -5,3 +5,6 @@ coverage/
 .DS_Store
 archguard-report.json
 !packages/core/test/fixtures/**
+
+# The GitHub Action runs from its committed bundle
+!action/dist/

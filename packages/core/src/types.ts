@@ -120,6 +120,8 @@ export interface ArchGuardConfig {
   reportOrphans: boolean;
 }
 
+export type Grade = "A" | "B" | "C" | "D" | "F";
+
 export interface ScoreBreakdown {
   /** 0-100, higher is healthier. */
   health: number;
@@ -129,7 +131,7 @@ export interface ScoreBreakdown {
   layerViolations: number;
   godFiles: number;
   orphanFiles: number;
-  grade: "A" | "B" | "C" | "D" | "F";
+  grade: Grade;
 }
 
 export interface Report {
