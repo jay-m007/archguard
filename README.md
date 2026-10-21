@@ -107,7 +107,7 @@ Tarjan's algorithm finds all SCCs in a single depth-first search:
 2. Track `lowlink[v]`: the smallest index reachable from `v` through its DFS subtree, plus at most one back edge to a node still on the stack.
 3. When `v` finishes and `lowlink[v] == index[v]`, `v` is the root of an SCC. Pop the stack down to `v`; those nodes form the component.
 
-It runs in **O(V + E)**. ArchGuard's implementation is *iterative* (an explicit work stack instead of recursion), so a 20,000-file import chain cannot overflow the call stack; there's a test for exactly that. For each cycle, a **breadth-first search** inside the component then finds a *shortest* concrete loop (`a.ts → b.ts → a.ts`), so developers see the easiest edge to cut.
+It runs in **O(V + E)**. ArchGuard's implementation is *iterative* (an explicit work stack instead of recursion), so a 20,000-file import chain cannot overflow the call stack; there's a test for exactly that. For each cycle, a **breadth-first search** inside the component then finds the *shortest* concrete loop (`a.ts → b.ts → a.ts`), so developers see the easiest edge to cut. It runs one BFS from every file in the component. For tangles of more than 300 files it falls back to a single BFS, which still gives a valid loop but not necessarily the shortest.
 
 ### 5. Layer rules
 Files are assigned to layers by glob patterns, where the first match wins. With no config, ArchGuard uses a Next.js preset:
@@ -164,7 +164,14 @@ Run `archguard init` to generate `archguard.config.json`, then edit it:
 }
 ```
 
-Arrays you provide replace the defaults, except `exclude`, which adds to the built-in excludes (`node_modules`, `.next`, `dist`, `build`, `*.d.ts`…).
+Arrays you provide replace the defaults, except `exclude`, which adds to the built-in excludes (`node_modules`, `.next`, `*.d.ts`…). Build-output folders (`dist`, `build`, `out`, `coverage`) are skipped only when they sit next to a `package.json`, so a source folder like `src/lib/build/` is still analysed.
+
+## Known limitations
+
+- Only the root `tsconfig.json`/`jsconfig.json` is read. In a monorepo, aliases defined in a nested package's tsconfig aren't applied, so analyse that package's folder directly.
+- A violation's identity (`key`) for a cycle is its whole set of files. If a cycle grows by one file, comparing two reports shows it as one resolved cycle plus one new cycle.
+- Shadowed `require` is detected per file, not per scope (a deliberate simplification).
+- Imports built from variables (`import(\`./${name}\`)`) can't be followed statically and are skipped.
 
 ## Tested on real projects
 

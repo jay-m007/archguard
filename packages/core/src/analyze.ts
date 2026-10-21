@@ -39,7 +39,17 @@ export async function analyze(rootDir: string, options: AnalyzeOptions = {}): Pr
 
   // 1. Discover
   const files = await discoverFiles(root, config);
-  const fileSet = new Set(files);
+
+  // Map each file's REAL path (symlinks resolved) to its node id, so an import
+  // that goes through a symlinked folder still lands on the right node.
+  const realRoot = fs.realpathSync(root);
+  const idByRealPath = new Map<string, string>();
+  for (const f of files) idByRealPath.set(safeRealpath(path.join(root, f)), f);
+  const insideProject = (abs: string) => {
+    const rel = path.relative(realRoot, abs);
+    return !rel.startsWith("..") && !path.isAbsolute(rel);
+  };
+  let ignoredImports = 0;
 
   // 2 + 3. Extract and resolve
   const resolver = createResolver(root);
@@ -56,10 +66,16 @@ export async function analyze(rootDir: string, options: AnalyzeOptions = {}): Pr
     for (const imp of extractImports(abs, text)) {
       const res = resolver.resolve(imp.specifier, abs);
       if (res.type === "internal") {
-        const target = toPosix(path.relative(root, res.file));
-        // Imports of excluded files (or files outside the root) are not graph nodes.
-        if (fileSet.has(target)) {
+        const real = safeRealpath(res.file);
+        const target = idByRealPath.get(real);
+        if (target) {
           edges.push({ from: file, to: target, specifier: imp.specifier, kind: imp.kind, typeOnly: imp.typeOnly, line: imp.line });
+        } else if (insideProject(real)) {
+          ignoredImports++; // a real project file, but excluded from the graph
+        } else {
+          // Outside the analysed folder, e.g. a sibling package in a monorepo.
+          const name = `(outside) ${toPosix(path.relative(realRoot, real))}`;
+          external[name] = (external[name] ?? 0) + 1;
         }
       } else if (res.type === "external") {
         external[res.name] = (external[res.name] ?? 0) + 1;
@@ -120,6 +136,7 @@ export async function analyze(rootDir: string, options: AnalyzeOptions = {}): Pr
       edges: fullGraph.edgeCount,
       externalPackages: Object.keys(external).length,
       unresolved: unresolved.length,
+      ignoredImports,
       cycles: cycles.length,
       violations: violationCounts,
     },
@@ -132,6 +149,14 @@ export async function analyze(rootDir: string, options: AnalyzeOptions = {}): Pr
     cycles,
     violations,
   };
+}
+
+function safeRealpath(p: string): string {
+  try {
+    return fs.realpathSync(p);
+  } catch {
+    return path.resolve(p);
+  }
 }
 
 function countLines(text: string): number {

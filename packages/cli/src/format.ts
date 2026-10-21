@@ -42,7 +42,8 @@ export function formatReport(report: Report, limit: number): string {
   );
   out.push(
     `${summary.files} files · ${summary.edges} internal imports · ${summary.externalPackages} external packages` +
-      (summary.unresolved ? ` · ${c.yellow(`${summary.unresolved} unresolved`)}` : ""),
+      (summary.unresolved ? ` · ${c.yellow(`${summary.unresolved} unresolved`)}` : "") +
+      (summary.ignoredImports ? c.dim(` · ${summary.ignoredImports} imports of excluded files`) : ""),
   );
 
   const layers = report.layers.filter((l) => l.files > 0);

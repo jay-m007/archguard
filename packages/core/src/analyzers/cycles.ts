@@ -95,21 +95,40 @@ export function findCycles(graph: DependencyGraph): Cycle[] {
     const isSelfLoop = component.length === 1 && graph.hasEdge(component[0], component[0]);
     if (component.length < 2 && !isSelfLoop) continue;
 
-    cycles.push({ files: component, path: shortestCycleThrough(graph, component) });
+    cycles.push({ files: component, path: shortestCycle(graph, component) });
   }
 
   // Biggest tangles first: they are the most expensive to untangle.
   return cycles.sort((a, b) => b.files.length - a.files.length || a.files[0].localeCompare(b.files[0]));
 }
 
+/** Components larger than this only search from one start file, to keep big repos fast. */
+export const EXACT_SHORTEST_CYCLE_LIMIT = 300;
+
 /**
- * Breadth-first search restricted to one SCC, starting from its first file and
- * stopping when we get back to it. BFS explores paths in order of length, so the
- * first loop found is a shortest one.
+ * The shortest import loop anywhere in the component: one BFS per member, keep
+ * the shortest result. That costs O(V·(V+E)) inside the component, so for very
+ * large tangles we fall back to a single BFS from the first file, which still
+ * gives a valid (but not necessarily globally shortest) loop.
  */
-function shortestCycleThrough(graph: DependencyGraph, component: string[]): string[] {
+export function shortestCycle(graph: DependencyGraph, component: string[]): string[] {
+  const starts = component.length <= EXACT_SHORTEST_CYCLE_LIMIT ? component : [component[0]];
+  let best: string[] | null = null;
+  for (const start of starts) {
+    const loop = shortestCycleThrough(graph, component, start);
+    if (!best || loop.length < best.length) best = loop;
+    if (best.length === 2) break; // a self-import can't be beaten
+  }
+  return best!;
+}
+
+/**
+ * Breadth-first search restricted to one SCC, starting from `start` and
+ * stopping when we get back to it. BFS explores paths in order of length, so the
+ * first loop found is the shortest one through `start`.
+ */
+function shortestCycleThrough(graph: DependencyGraph, component: string[], start: string): string[] {
   const members = new Set(component);
-  const start = component[0];
   if (graph.hasEdge(start, start)) return [start, start];
 
   const parent = new Map<string, string>();
@@ -142,5 +161,5 @@ function shortestCycleThrough(graph: DependencyGraph, component: string[]): stri
     }
   }
 
-  return [...component, start]; // unreachable for a true SCC; defensive fallback
+  return [start, ...component.filter((f) => f !== start), start]; // unreachable for a true SCC; defensive fallback
 }

@@ -46,6 +46,9 @@ function parseArgs(argv: string[]): Args {
     return v;
   };
 
+  // Accept both "--limit 5" and "--limit=5".
+  argv = argv.flatMap((a) => (/^--[a-z-]+=/.test(a) ? [a.slice(0, a.indexOf("=")), a.slice(a.indexOf("=") + 1)] : [a]));
+
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     switch (a) {
@@ -75,6 +78,7 @@ function parseArgs(argv: string[]): Args {
   }
 
   if (!args.command) args.command = positional.shift() ?? "help";
+  if (positional.length > 1) throw new Error(`Expected one project path, got ${positional.length}: ${positional.join(" ")}`);
   if (positional[0]) args.target = positional[0];
   return args;
 }
@@ -89,15 +93,26 @@ async function runAnalyze(args: Args): Promise<number> {
   const root = path.resolve(args.target);
   const report = await analyze(root, { configPath: args.config });
 
-  if (args.writeReport && !args.json) {
-    const outFile = path.resolve(args.out ?? path.join(root, "archguard-report.json"));
+  // An empty analysis must never pass CI with a perfect score.
+  if (report.summary.files === 0) {
+    console.error(c.yellow(`No source files found in ${root}. Check the path and the "include"/"exclude" settings.`));
+    return 2;
+  }
+
+  // The file report is written whenever it's enabled (default) or --out is given explicitly,
+  // except that --json without --out only prints to stdout.
+  const writeFile = args.out !== undefined || (args.writeReport && !args.json);
+  let outFile: string | null = null;
+  if (writeFile) {
+    outFile = path.resolve(args.out ?? path.join(root, "archguard-report.json"));
     fs.writeFileSync(outFile, JSON.stringify(report, null, 2));
-    console.log(formatReport(report, args.limit));
-    console.log(c.dim(`JSON report written to ${path.relative(process.cwd(), outFile) || outFile}`));
-  } else if (args.json) {
+  }
+
+  if (args.json) {
     process.stdout.write(JSON.stringify(report, null, 2) + "\n");
   } else {
     console.log(formatReport(report, args.limit));
+    if (outFile) console.log(c.dim(`JSON report written to ${path.relative(process.cwd(), outFile) || outFile}`));
   }
 
   const failed = shouldFail(report, args.failOn);
