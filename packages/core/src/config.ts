@@ -14,10 +14,12 @@ const both = (...globs: string[]) => globs.flatMap((g) => [g, `src/${g}`]);
  */
 export const DEFAULT_LAYERS: LayerDefinition[] = [
   { name: "api", patterns: both("app/api/**", "pages/api/**") },
+  // Server Actions colocated with routes ("use server" files) are server-side
+  // logic that components are SUPPOSED to import, so they are services, not routes.
+  { name: "services", patterns: both("app/**/actions/**", "app/**/actions.{ts,js}", "services/**", "server/**", "actions/**") },
   { name: "routes", patterns: both("app/**", "pages/**") },
   { name: "components", patterns: both("components/**") },
   { name: "hooks", patterns: both("hooks/**") },
-  { name: "services", patterns: both("services/**", "server/**", "actions/**") },
   { name: "lib", patterns: both("lib/**", "utils/**", "helpers/**", "config/**", "constants/**", "types/**") },
 ];
 

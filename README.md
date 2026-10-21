@@ -115,13 +115,13 @@ Files are assigned to layers by glob patterns, where the first match wins. With 
 | Layer | Folders (root or `src/`) | Must not import |
 |---|---|---|
 | `api` | `app/api/**`, `pages/api/**` | — |
+| `services` | `app/**/actions/**`, `app/**/actions.ts` (Server Actions), `services/**`, `server/**`, `actions/**` | `routes`, `components`, `hooks` |
 | `routes` | `app/**`, `pages/**` | `api` |
 | `components` | `components/**` | `routes`, `api` |
 | `hooks` | `hooks/**` | `routes`, `api`, `components` |
-| `services` | `services/**`, `server/**`, `actions/**` | `routes`, `components`, `hooks` |
 | `lib` | `lib/**`, `utils/**`, `helpers/**`, `config/**`, `constants/**`, `types/**` | everything above |
 
-Rules can be `disallow` lists (blacklist) or `allow` lists (whitelist).
+Server Actions colocated under `app/` count as `services`, not `routes`: components are meant to import them, so that isn't flagged. Rules can be `disallow` lists (blacklist) or `allow` lists (whitelist).
 
 ### 6. Coupling metrics
 For each file, ArchGuard computes **fan-in** (afferent coupling, Ca: how many files depend on it) and **fan-out** (efferent coupling, Ce: how many files it depends on). From those it calculates Robert C. Martin's **instability**:

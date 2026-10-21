@@ -30,14 +30,17 @@ describe("analyze: Next.js fixture", () => {
     expect(report.meta.tsconfig).toBe("tsconfig.json");
     expect(edgeList(report)).toEqual([
       "src/app/api/users/route.ts -> src/lib/db.ts",
+      "src/app/dashboard/actions/save.ts -> src/lib/db.ts",
       "src/app/dashboard/page.tsx -> src/app/api/users/route.ts",
       "src/app/dashboard/page.tsx -> src/hooks/useUser.ts",
       "src/app/layout.tsx -> src/components/Header.tsx",
+      "src/app/layout.tsx -> src/components/SaveButton.tsx",
       "src/app/page.tsx -> src/components/Card.tsx",
       "src/app/page.tsx -> src/lib/format.ts",
       "src/components/Card.tsx -> src/app/api/users/route.ts",
       "src/components/Card.tsx -> src/lib/types.ts",
       "src/components/Header.tsx -> src/components/Card.tsx",
+      "src/components/SaveButton.tsx -> src/app/dashboard/actions/save.ts",
       "src/lib/format.ts -> src/components/Card.tsx",
     ]);
   });
@@ -46,6 +49,7 @@ describe("analyze: Next.js fixture", () => {
     const report = await analyze(fixture("nextapp"));
     const layer = (id: string) => report.nodes.find((n) => n.id === id)?.layer;
     expect(layer("src/app/api/users/route.ts")).toBe("api");
+    expect(layer("src/app/dashboard/actions/save.ts")).toBe("services"); // Server Action
     expect(layer("src/app/page.tsx")).toBe("routes");
     expect(layer("src/components/Card.tsx")).toBe("components");
     expect(layer("src/lib/db.ts")).toBe("lib");
