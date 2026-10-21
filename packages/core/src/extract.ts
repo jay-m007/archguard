@@ -21,6 +21,10 @@ function scriptKindFor(fileName: string): ts.ScriptKind {
 export function extractImports(fileName: string, sourceText: string): RawImport[] {
   const sf = ts.createSourceFile(fileName, sourceText, ts.ScriptTarget.Latest, true, scriptKindFor(fileName));
   const found: RawImport[] = [];
+  // If the file defines its own `require` (variable, function or parameter),
+  // calls to it are not CommonJS imports. A whole-file check is a deliberate
+  // simplification of real scope analysis; local `require` shadowing is rare.
+  const requireIsShadowed = declaresName(sf, "require");
 
   const add = (node: ts.Node, specifier: string, kind: ImportKind, typeOnly: boolean) => {
     const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
@@ -68,7 +72,7 @@ export function extractImports(fileName: string, sourceText: string): RawImport[
       if (literal !== null) {
         if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
           add(node, literal, "dynamic", false);
-        } else if (ts.isIdentifier(node.expression) && node.expression.text === "require") {
+        } else if (ts.isIdentifier(node.expression) && node.expression.text === "require" && !requireIsShadowed) {
           add(node, literal, "require", false);
         }
       }
@@ -77,6 +81,32 @@ export function extractImports(fileName: string, sourceText: string): RawImport[
     ts.forEachChild(node, visit);
   };
 
+  visit(sf);
+  return found;
+}
+
+/** True if the file declares a variable, function, parameter or import binding called `name`. */
+function declaresName(sf: ts.SourceFile, name: string): boolean {
+  if (!sf.text.includes(name)) return false;
+  let found = false;
+  const visit = (node: ts.Node): void => {
+    if (found) return;
+    if (
+      (ts.isVariableDeclaration(node) || ts.isFunctionDeclaration(node) || ts.isParameter(node) ||
+        ts.isImportSpecifier(node) || ts.isImportClause(node)) &&
+      node.name && ts.isIdentifier(node.name) && node.name.text === name
+    ) {
+      // `const require = createRequire(import.meta.url)` is the ESM way to get a REAL require.
+      const isCreateRequire =
+        ts.isVariableDeclaration(node) && node.initializer && ts.isCallExpression(node.initializer) &&
+        /createRequire$/.test(node.initializer.expression.getText(sf));
+      if (!isCreateRequire) {
+        found = true;
+        return;
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
   visit(sf);
   return found;
 }

@@ -107,7 +107,7 @@ export interface ArchGuardConfig {
   /** Glob patterns for files the framework loads directly (never reported as orphans). */
   entryPoints: string[];
   thresholds: {
-    /** A file importing at least this many internal files is flagged as a god file. */
+    /** A file importing more than this many internal files is flagged as a god file. */
     maxFanOut: number;
     /** A file is flagged as a god file when fan-in AND fan-out both reach this value (a "hub"). */
     hubFanInOut: number;
@@ -147,6 +147,8 @@ export interface Report {
     edges: number;
     externalPackages: number;
     unresolved: number;
+    /** Imports of project files that are excluded from the graph (by config or build-output rules). */
+    ignoredImports: number;
     cycles: number;
     violations: Record<ViolationType, number>;
   };

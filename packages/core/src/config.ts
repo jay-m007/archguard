@@ -52,10 +52,9 @@ export const DEFAULT_RULES: LayerRule[] = [
 /** Files Next.js (and tooling) load directly, so they are legitimately never imported. */
 export const DEFAULT_ENTRY_POINTS: string[] = [
   ...both(
-    "app/**/{page,layout,template,loading,error,global-error,not-found,default,route,head,opengraph-image,twitter-image,icon,apple-icon,sitemap,robots,manifest}.{ts,tsx,js,jsx,mjs}",
+    "app/**/{page,layout,template,loading,error,global-error,not-found,global-not-found,forbidden,unauthorized,default,route,head,opengraph-image,twitter-image,icon,apple-icon,sitemap,robots,manifest}.{ts,tsx,js,jsx,mjs,mts,cts}",
     "pages/**",
-    "middleware.{ts,js}",
-    "instrumentation.{ts,js}",
+    "{middleware,proxy,instrumentation,instrumentation-client,mdx-components}.{ts,tsx,js,jsx,mjs,mts,cts}",
   ),
   "*.config.{ts,js,mjs,cjs}",
   "**/*.{test,spec}.{ts,tsx,js,jsx}",
@@ -79,20 +78,23 @@ export const DEFAULT_CONFIG: ArchGuardConfig = {
   reportOrphans: true,
 };
 
-/** Folders that are never source code. Always excluded on top of user excludes. */
+/** Folders that are never source code, at any depth. Always excluded on top of user excludes. */
 export const ALWAYS_EXCLUDE = [
   "**/node_modules/**",
   "**/.git/**",
   "**/.next/**",
   "**/.turbo/**",
   "**/.vercel/**",
-  "**/dist/**",
-  "**/build/**",
-  "**/out/**",
-  "**/coverage/**",
   "**/*.d.ts",
   "**/*.min.js",
 ];
+
+/**
+ * Build-output folder names. These are only excluded when they sit next to a
+ * package.json (the project root, or a package in a monorepo), so real source
+ * folders such as src/lib/build/ are still analysed.
+ */
+export const OUTPUT_DIRS = ["dist", "build", "out", "coverage"];
 
 export interface LoadedConfig {
   config: ArchGuardConfig;
@@ -113,13 +115,18 @@ export function loadConfig(root: string, explicitPath?: string): LoadedConfig {
     return { config: structuredClone(DEFAULT_CONFIG), source: "defaults (Next.js preset)" };
   }
 
-  let user: Partial<ArchGuardConfig>;
+  let user: unknown;
   try {
     user = JSON.parse(fs.readFileSync(file, "utf8"));
   } catch (err) {
     throw new Error(`Could not parse ${file}: ${(err as Error).message}`);
   }
 
+  try {
+    validateShape(user);
+  } catch (err) {
+    throw new Error(`Invalid config ${file}: ${(err as Error).message}`);
+  }
   const config = mergeConfig(user);
   validateConfig(config);
   const rel = path.relative(root, file);
@@ -142,7 +149,44 @@ export function mergeConfig(user: Partial<ArchGuardConfig>): ArchGuardConfig {
   };
 }
 
+/** Checks the shape of a user config before merging, with messages a human can act on. */
+function validateShape(user: unknown): asserts user is Partial<ArchGuardConfig> {
+  if (user === null || typeof user !== "object" || Array.isArray(user)) {
+    throw new Error("Config must be a JSON object, e.g. { \"layers\": [...], \"rules\": [...] }");
+  }
+  const u = user as Record<string, unknown>;
+  const stringArray = (key: string, v: unknown) => {
+    if (!Array.isArray(v) || v.some((x) => typeof x !== "string")) throw new Error(`"${key}" must be an array of strings`);
+  };
+  for (const key of ["include", "exclude", "entryPoints"]) if (u[key] !== undefined) stringArray(key, u[key]);
+  if (u.layers !== undefined) {
+    if (!Array.isArray(u.layers)) throw new Error(`"layers" must be an array of { "name", "patterns" } objects`);
+    u.layers.forEach((l, i) => {
+      if (!l || typeof l !== "object" || typeof l.name !== "string") throw new Error(`layers[${i}] needs a string "name"`);
+      stringArray(`layers[${i}].patterns`, l.patterns);
+    });
+  }
+  if (u.rules !== undefined) {
+    if (!Array.isArray(u.rules)) throw new Error(`"rules" must be an array`);
+    u.rules.forEach((r, i) => {
+      if (!r || typeof r !== "object" || typeof r.from !== "string") throw new Error(`rules[${i}] needs a string "from"`);
+      if (r.disallow !== undefined) stringArray(`rules[${i}].disallow`, r.disallow);
+      if (r.allow !== undefined) stringArray(`rules[${i}].allow`, r.allow);
+    });
+  }
+  if (u.thresholds !== undefined) {
+    if (!u.thresholds || typeof u.thresholds !== "object") throw new Error(`"thresholds" must be an object`);
+    for (const [k, v] of Object.entries(u.thresholds)) {
+      if (typeof v !== "number" || !Number.isFinite(v) || v < 0) throw new Error(`thresholds.${k} must be a non-negative number`);
+    }
+  }
+  for (const key of ["ignoreTypeOnlyImports", "reportOrphans"]) {
+    if (u[key] !== undefined && typeof u[key] !== "boolean") throw new Error(`"${key}" must be true or false`);
+  }
+}
+
 export function validateConfig(config: ArchGuardConfig): void {
+  if (config.include.length === 0) throw new Error(`"include" must contain at least one glob pattern`);
   const names = new Set<string>();
   for (const layer of config.layers) {
     if (!layer.name || !Array.isArray(layer.patterns) || layer.patterns.length === 0) {

@@ -49,7 +49,7 @@ export function findGodFiles(nodes: FileNode[], config: ArchGuardConfig): Violat
 
   for (const n of nodes) {
     const reasons: string[] = [];
-    if (n.fanOut >= maxFanOut) reasons.push(`imports ${n.fanOut} files (limit ${maxFanOut})`);
+    if (n.fanOut > maxFanOut) reasons.push(`imports ${n.fanOut} files (limit ${maxFanOut})`);
     if (n.fanIn >= hubFanInOut && n.fanOut >= hubFanInOut) {
       reasons.push(`is a hub: imported by ${n.fanIn} files and imports ${n.fanOut}`);
     }

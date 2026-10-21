@@ -45,25 +45,29 @@ export function createResolver(root: string): Resolver {
 
     if (ASSET_EXTENSIONS.has(path.extname(bare).toLowerCase())) return { type: "asset" };
 
-    if (bare.startsWith("node:") || BUILTINS.has(bare) || BUILTINS.has(bare.split("/")[0])) {
-      return { type: "external", name: bare.startsWith("node:") ? bare : `node:${bare.split("/")[0]}` };
-    }
+    if (bare.startsWith("node:")) return { type: "external", name: bare };
 
+    // Project files win over Node built-in names: with "baseUrl", a local folder
+    // called util/ or events/ is imported as "util/format", and must stay internal.
     const result = ts.resolveModuleName(bare, fromFile, options, ts.sys, cache).resolvedModule;
+    const resolved = result ? path.resolve(result.resolvedFileName) : null;
+    const inNodeModules = !!result && (result.isExternalLibraryImport || resolved!.includes(`${path.sep}node_modules${path.sep}`));
 
-    if (result) {
-      const resolved = path.resolve(result.resolvedFileName);
-      if (result.isExternalLibraryImport || resolved.includes(`${path.sep}node_modules${path.sep}`)) {
-        return { type: "external", name: packageName(bare) };
-      }
-      return { type: "internal", file: resolved };
-    }
+    if (resolved && !inNodeModules) return { type: "internal", file: resolved };
+
+    const first = bare.split("/")[0];
+    if (BUILTINS.has(bare) || BUILTINS.has(first)) return { type: "external", name: `node:${first}` };
+
+    if (inNodeModules) return { type: "external", name: packageName(bare) };
 
     // Not resolvable. A relative path or a configured alias that fails to
     // resolve is a real problem (typo, deleted file); a bare name is just a
     // package that isn't installed, which we still record as external.
     const isRelative = bare.startsWith(".") || bare.startsWith("/");
-    if (isRelative || aliasMatchers.some((re) => re.test(bare))) return { type: "unresolved" };
+    const isAlias = aliasMatchers.some((re) => re.test(bare));
+    // "components/Buton" with baseUrl: the folder exists locally, so it's a typo, not a package.
+    const isBaseUrlPath = !!options.baseUrl && fs.existsSync(path.join(options.baseUrl, first));
+    if (isRelative || isAlias || isBaseUrlPath) return { type: "unresolved" };
     return { type: "external", name: packageName(bare) };
   };
 
