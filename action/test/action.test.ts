@@ -23,7 +23,7 @@ let apiUrl: string;
 
 interface Recorded { method: string; url: string; body: unknown }
 let requests: Recorded[] = [];
-let existingComments: { id: number; body: string }[] = [];
+let existingComments: { id: number; body: string; user?: { type: string } }[] = [];
 let commentStatus = 201;
 
 const sh = (cwd: string, ...args: string[]) =>
@@ -151,7 +151,9 @@ describe("GitHub Action (bundled)", () => {
   });
 
   it("updates its existing comment instead of posting a second one", async () => {
-    existingComments = [{ id: 1, body: "unrelated" }, { id: 55, body: "<!-- archguard:pr-comment -->\nold" }];
+    existingComments = [{ id: 1, body: "unrelated" }, { id: 7, body: "<!-- archguard:pr-comment -->\nforged", user: { type: "User" } },
+      { id: 55, body: "<!-- archguard:pr-comment -->\nold", user: { type: "Bot" } },
+    ];
     await runAction({}, prEvent());
     expect(requests.some((q) => q.method === "POST")).toBe(false);
     expect(requests.find((q) => q.method === "PATCH")?.url).toBe("/repos/bytebyjay/demo/issues/comments/55");

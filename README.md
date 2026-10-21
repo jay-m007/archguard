@@ -30,9 +30,11 @@ Layer violations (3)
 | Phase | Scope | Status |
 |---|---|---|
 | 1 | Core engine + CLI: parsing, alias resolution, cycles, layers, metrics, score, JSON report | ✅ Done |
-| 2 | Dashboard: interactive dependency graph (Next.js + React Flow) | ⏳ Next |
-| 3 | GitHub Action: comment on PRs with *newly introduced* violations, plus LLM-written explanations | Planned |
-| 4 | Drift over time: score every commit in git history and chart it | Planned |
+| 2 | Dashboard: interactive dependency graph, issues table, history charts (Next.js + React Flow) | ✅ Done |
+| 3 | GitHub Action: comments on PRs with *newly introduced* violations, optional LLM explanations | ✅ Done |
+| 4 | Drift over time: score every commit in git history and chart it | ✅ Done |
+
+![Dependency graph of excalidraw, grouped by folder](docs/screenshots/graph-folders.png)
 
 ## Quick start
 
@@ -64,6 +66,59 @@ archguard init [path]     Write a starter archguard.config.json
 ```
 
 Exit codes: `0` passed · `1` issues at the `--fail-on` level · `2` could not run. That makes it usable in CI.
+
+## Dashboard
+
+```bash
+npm run build:dashboard                      # static site in apps/dashboard/out
+npx serve apps/dashboard/out                 # or any static file server
+```
+
+Open it and drop in `archguard-report.json` (from `archguard analyze`) and, optionally, a history file (from `archguard history`). Nothing is uploaded; the files are read in your browser. Add `?demo` to the URL to explore a bundled excalidraw example.
+
+- **Graph**: files or folders (with a depth control) laid out in layers with dagre. Cycles are red, layer violations dashed orange. Pick one cycle in the sidebar to see just its files, click a file to inspect its imports, importers and issues, click a folder to open it.
+- **Issues**: sortable, searchable table of every violation. Click a row to jump to the file in the graph.
+- **History**: health score per commit, small charts for cycles, layer violations and god files, and the commits that moved the score most. A crosshair tooltip shows each commit.
+- Light and dark themes, keyboard navigation, reduced-motion support, works on a phone.
+
+![One cycle from excalidraw, isolated](docs/screenshots/cycle.png)
+
+## Drift over time
+
+```bash
+archguard history . --commits 30             # the last 30 first-parent commits
+archguard history . --commits 30 --spread    # 30 commits spread evenly across all history
+archguard history . --ref main -o history.json
+```
+
+Each commit is exported with `git archive` into a temporary folder, so your working tree is never touched. Every commit is scored with the **current** config, so the numbers are comparable. The output lists the biggest regressions and improvements.
+
+![Health score across 30 excalidraw commits](docs/screenshots/history.png)
+
+## GitHub Action
+
+Fail or comment on pull requests only for problems the PR *introduces*, so an old codebase doesn't block new work.
+
+```yaml
+# .github/workflows/archguard.yml
+name: ArchGuard
+on: pull_request
+permissions: { contents: read, pull-requests: write }
+jobs:
+  archguard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: bytebyjay/archguard/action@main
+        with:
+          fail-on: error                           # only NEW errors fail the check
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}   # optional
+```
+
+It analyses the PR head and its base commit, compares the two reports by each violation's stable key, and posts one comment (updated in place on later pushes) with the health change and the new and resolved issues. It also adds inline annotations and a job summary. With an `openai-api-key` (any OpenAI-compatible endpoint via `openai-base-url`), each new issue gets a short plain-English explanation and fix suggestion. The LLM is optional and never decides pass or fail. On pull requests from forks, where the token can't write comments, it falls back to a warning. Outputs: `health`, `grade`, `health-delta`, `introduced`, `report-path`.
+
+You can run the same comparison locally: `archguard diff base.json head.json --markdown [--explain]`.
 
 ## What it detects
 
@@ -171,6 +226,8 @@ Arrays you provide replace the defaults, except `exclude`, which adds to the bui
 - Only the root `tsconfig.json`/`jsconfig.json` is read. In a monorepo, aliases defined in a nested package's tsconfig aren't applied, so analyse that package's folder directly.
 - A violation's identity (`key`) for a cycle is its whole set of files. If a cycle grows by one file, comparing two reports shows it as one resolved cycle plus one new cycle.
 - Shadowed `require` is detected per file, not per scope (a deliberate simplification).
+- History scores old commits with today's config and today's tsconfig, so a project that restructured heavily may show some noise.
+- The dashboard draws up to 400 files at once; larger graphs switch to the folder view.
 - Imports built from variables (`import(\`./${name}\`)`) can't be followed statically and are skipped.
 
 ## Tested on real projects
@@ -201,7 +258,13 @@ packages/
       diff.ts            # compare two reports (for PR checks)
     test/                # Vitest unit + fixture tests
       fixtures/          # small sample projects: cycles, Next.js app, plain JS
+      history.ts         # analyse many commits via git archive
+      markdown.ts        # PR comment rendering
+      llm.ts             # optional explanations (OpenAI-compatible)
   cli/                   # `archguard` command-line tool
+action/                  # GitHub Action (bundle committed in dist/)
+apps/dashboard/          # Next.js static dashboard (React Flow)
+docs/screenshots/
 ```
 
 ## Development
@@ -209,8 +272,9 @@ packages/
 ```bash
 npm test            # run all tests
 npm run test:watch  # watch mode
-npm run typecheck   # strict TypeScript check
-npm run build       # compile to dist/
+npm run typecheck   # strict TypeScript check (core, cli, dashboard)
+npm run build       # compile core, cli and the action bundle
+npm run build:dashboard
 ```
 
 ## License

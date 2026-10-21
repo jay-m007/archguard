@@ -42,13 +42,19 @@ export function createGitHubClient(opts: GitHubClientOptions) {
         const comments = (await request("GET", `${base}/issues/${issueNumber}/comments?per_page=100&page=${page}`)) as {
           id: number;
           body?: string;
+          user?: { type?: string };
         }[];
-        existing = comments.find((c) => c.body?.includes(COMMENT_MARKER));
+        // Only our own (bot) comments count: anyone can paste the marker into a comment of theirs.
+        existing = comments.find((c) => c.user?.type === "Bot" && c.body?.includes(COMMENT_MARKER));
         if (comments.length < 100) break;
       }
       if (existing) {
-        await request("PATCH", `${base}/issues/comments/${existing.id}`, { body });
-        return { action: "updated", id: existing.id };
+        try {
+          await request("PATCH", `${base}/issues/comments/${existing.id}`, { body });
+          return { action: "updated", id: existing.id };
+        } catch {
+          /* can't edit it (permissions): post a fresh comment instead */
+        }
       }
       const created = (await request("POST", `${base}/issues/${issueNumber}/comments`, { body })) as { id: number };
       return { action: "created", id: created.id };

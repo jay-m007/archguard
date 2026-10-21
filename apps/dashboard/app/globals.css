@@ -1,0 +1,209 @@
+/*
+ * ArchGuard dashboard: "blueprint" theme.
+ *
+ * Dark mode is blueprint paper: deep navy with a faint drafting grid.
+ * Light mode is drafting vellum: cool white with navy ink.
+ * Every colour is a token, so components only ever reference roles.
+ *
+ * Layer colours come from a validated categorical palette (CVD-checked
+ * against these exact surfaces). Red/orange/yellow are reserved for issue
+ * status and always appear with an icon and a label, never colour alone.
+ */
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+:root {
+  color-scheme: light;
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", Menlo, monospace;
+
+  /* type scale (1.2 minor third, 15px base) */
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.35rem;
+  --text-hero: 3.25rem;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-sm: 3px;
+  --radius-md: 6px;
+
+  /* vellum (light) */
+  --plane: #e9eff5;
+  --surface: #f8fbfd;
+  --panel: #ffffff;
+  --panel-raised: #f1f5f9;
+  --ink: #0f2236;
+  --ink-2: #3d556c;
+  --muted: #627789;
+  --rule: rgba(15, 34, 54, 0.14);
+  --rule-strong: rgba(15, 34, 54, 0.32);
+  --grid-minor: rgba(15, 34, 54, 0.045);
+  --grid-major: rgba(15, 34, 54, 0.09);
+  --focus: #2a78d6;
+  --accent: #2a78d6;
+  --edge: rgba(61, 85, 108, 0.42);
+  --edge-dim: rgba(61, 85, 108, 0.1);
+
+  /* layer palette (categorical, light steps) */
+  --layer-1: #2a78d6;
+  --layer-2: #eb6834;
+  --layer-3: #1baf7a;
+  --layer-4: #eda100;
+  --layer-5: #e87ba4;
+  --layer-6: #008300;
+  --layer-7: #6250d6;
+  --layer-8: #e34948;
+  --layer-none: #8a9bab;
+
+  /* status (fixed, never themed) */
+  --critical: #d03b3b;
+  --serious: #ec835a;
+  --warning: #fab219;
+  --good: #0ca30c;
+  --critical-ink: #b12a2a; /* text-safe on light */
+  --serious-ink: #a8481f;
+  --warning-ink: #8a5a00;
+  --good-ink: #006300;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --plane: #0b1d30;
+    --surface: #10273d;
+    --panel: #132c45;
+    --panel-raised: #18354f;
+    --ink: #e6eef6;
+    --ink-2: #a9bdd0;
+    --muted: #8aa1b6;
+    --rule: rgba(169, 189, 208, 0.16);
+    --rule-strong: rgba(169, 189, 208, 0.34);
+    --grid-minor: rgba(156, 196, 232, 0.05);
+    --grid-major: rgba(156, 196, 232, 0.1);
+    --focus: #86b6ef;
+    --accent: #6da7ec;
+    --edge: rgba(169, 189, 208, 0.38);
+    --edge-dim: rgba(169, 189, 208, 0.08);
+    --layer-1: #3987e5;
+    --layer-2: #d95926;
+    --layer-3: #199e70;
+    --layer-4: #c98500;
+    --layer-5: #d55181;
+    --layer-6: #008300;
+    --layer-7: #9085e9;
+    --layer-8: #e66767;
+    --layer-none: #6f859a;
+    --critical-ink: #f08a8a;
+    --serious-ink: #f2a382;
+    --warning-ink: #fbc65a;
+    --good-ink: #3fcf3f;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --plane: #0b1d30;
+  --surface: #10273d;
+  --panel: #132c45;
+  --panel-raised: #18354f;
+  --ink: #e6eef6;
+  --ink-2: #a9bdd0;
+  --muted: #8aa1b6;
+  --rule: rgba(169, 189, 208, 0.16);
+  --rule-strong: rgba(169, 189, 208, 0.34);
+  --grid-minor: rgba(156, 196, 232, 0.05);
+  --grid-major: rgba(156, 196, 232, 0.1);
+  --focus: #86b6ef;
+  --accent: #6da7ec;
+  --edge: rgba(169, 189, 208, 0.38);
+  --edge-dim: rgba(169, 189, 208, 0.08);
+  --layer-1: #3987e5;
+  --layer-2: #d95926;
+  --layer-3: #199e70;
+  --layer-4: #c98500;
+  --layer-5: #d55181;
+  --layer-6: #008300;
+  --layer-7: #9085e9;
+  --layer-8: #e66767;
+  --layer-none: #6f859a;
+  --critical-ink: #f08a8a;
+  --serious-ink: #f2a382;
+  --warning-ink: #fbc65a;
+  --good-ink: #3fcf3f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--plane);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Drafting grid used behind the graph and the empty state */
+.blueprint-grid {
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(var(--grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px);
+  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
