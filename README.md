@@ -4,7 +4,7 @@
 
 ArchGuard reads a project's source code, builds a dependency graph of every file, and finds the structural problems that make codebases hard to change: circular dependencies, imports that break your intended layering, oversized "god files", and dead code. It gives the project a health score so you can see architecture improve or decay over time.
 
-> College project by [@bytebyjay](https://github.com/bytebyjay). It rebuilds the idea behind **CodeSee** (a code-visualisation startup that shut down in 2024): static diagrams go stale, so ArchGuard focuses on detecting *drift* continuously.
+> College project by [@jay-m007](https://github.com/jay-m007). It rebuilds the idea behind **CodeSee** (a code-visualisation startup that shut down in 2024): static diagrams go stale, so ArchGuard focuses on detecting *drift* continuously.
 
 ```
 $ archguard analyze .
@@ -39,7 +39,7 @@ Layer violations (3)
 ## Quick start
 
 ```bash
-git clone https://github.com/bytebyjay/archguard.git
+git clone https://github.com/jay-m007/archguard.git
 cd archguard
 npm install
 npm run build
@@ -110,7 +110,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: bytebyjay/archguard/action@main
+      - uses: jay-m007/archguard/action@main
         with:
           fail-on: error                           # only NEW errors fail the check
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}   # optional
