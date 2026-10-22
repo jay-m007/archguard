@@ -63,7 +63,13 @@ describe("review fixes", () => {
       "app/page.tsx": `import "../src/linked/s";`,
       "src/shared/s.ts": "export {}",
     });
-    fs.symlinkSync(path.join(root, "src/shared"), path.join(root, "src/linked"), "dir");
+    try {
+      fs.symlinkSync(path.join(root, "src/shared"), path.join(root, "src/linked"), "dir");
+    } catch (err) {
+      // Windows only allows symlinks with admin rights or Developer Mode: nothing to test there.
+      if ((err as NodeJS.ErrnoException).code === "EPERM") return;
+      throw err;
+    }
     const r = await analyze(root);
     expect(edges(r)).toEqual(["app/page.tsx -> src/shared/s.ts"]);
     expect(r.violations.filter((v) => v.type === "orphan-file")).toEqual([]);
