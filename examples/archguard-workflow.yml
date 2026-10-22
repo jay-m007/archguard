@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: bytebyjay/archguard/action@main
+      - uses: jay-m007/archguard/action@main
         with:
           path: .                     # folder to analyse
           fail-on: error              # block PRs that ADD circular deps / layer violations
