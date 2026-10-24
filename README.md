@@ -2,6 +2,8 @@
 
 **Architecture drift detection for JavaScript and TypeScript codebases.**
 
+**Live demo: https://jay-m007.github.io/archguard/** (runs in your browser, nothing is uploaded)
+
 ArchGuard reads a project's source code, builds a dependency graph of every file, and finds the structural problems that make codebases hard to change: circular dependencies, imports that break your intended layering, oversized "god files", and dead code. It gives the project a health score so you can see architecture improve or decay over time.
 
 > College project by [@jay-m007](https://github.com/jay-m007). It rebuilds the idea behind **CodeSee** (a code-visualisation startup that shut down in 2024): static diagrams go stale, so ArchGuard focuses on detecting *drift* continuously.
